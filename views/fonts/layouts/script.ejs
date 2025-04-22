@@ -1,0 +1,37 @@
+<!-- Js Start -->
+<script src="/assets/js/jquery.min.js"></script> <!-- jquery library js -->
+<script src="/assets/js/bootstrap.bundle.min.js"></script> <!-- bootstrap bundle js -->
+<script src="/assets/js/popper.min.js"></script> <!-- popper js -->
+<script src="/vendor/slick/slick.js"></script> <!-- slick js -->
+<script src="/vendor/slick/slick.min.js"></script> <!-- slick js -->
+<script src="/vendor/counter/jquery.counterup.js"></script> <!-- counter js -->
+<script src="/vendor/counter/jquery.waypoints.js"></script> <!-- counter js -->
+<script src="/vendor/wow/wow.min.js"></script> <!-- wow js -->
+<script src="/vendor/gsap/gsap.min.js"></script>  <!-- GreenSock JS -->
+<script src="/assets/js/theme.js"></script> <!-- theme js -->
+
+<script>
+  $(".number").counterUp({
+    time: 2000
+  });
+</script>
+
+<script>
+  new WOW().init();
+</script>
+<script>
+  $(function(){
+      $('#eye').click(function(){
+          if($(this).hasClass('flaticon-view')){
+              $(this).removeClass('flaticon-view');
+              $(this).addClass('flaticon-hide');
+              $('#loginpassword').attr('type','text');
+          }else{
+              $(this).removeClass('flaticon-hide');
+              $(this).addClass('flaticon-view');  
+              $('#loginpassword').attr('type','password');
+          }
+      });
+  });
+</script>
+<!-- Js End -->

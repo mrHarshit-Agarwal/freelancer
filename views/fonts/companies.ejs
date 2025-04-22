@@ -1,0 +1,73 @@
+<section id="companies" class="register-main-block">
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Company Info Left Panel -->
+      <div class="col-lg-5 offset-lg-1">
+        <div class="register-block text-start">
+          <h2>Top Rated Companies</h2>
+          <p class="mb-4">Discover and connect with verified companies</p>
+          <ul class="list-unstyled">
+            <li><strong>Total Companies:</strong> <%= companies.length %></li>
+            <li><strong>Sorted By:</strong> <%= sortBy || "Default" %></li>
+            <li><strong>Location:</strong> Across India & Global</li>
+            <li><strong>Support:</strong> Available 24x7</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Company Cards -->
+      <div class="col-lg-5">
+        <div class="register-block text-center">
+          <h2>Explore Companies</h2>
+          <p>Click to view detailed profile of each company</p>
+
+          <div class="row">
+            <% companies.forEach(company => { %>
+            <div class="col-12 mb-3">
+              <div class="p-3 border rounded text-start bg-light">
+                <div class="d-flex align-items-center">
+                  <img
+                    src="<%= company.logoUrl %>"
+                    alt="Logo"
+                    class="me-3 rounded"
+                    style="width: 60px; height: 60px; object-fit: cover"
+                  />
+                  <div>
+                    <h5 class="mb-1">
+                      <a href="/company/<%= company._id %>"
+                        ><%= company.name %></a
+                      >
+                    </h5>
+                    <p class="mb-0">
+                      <i class="flaticon-location"></i> <%= company.address %>
+                    </p>
+                    <div class="mt-1">
+                      <% if (company.socialLinks?.facebook) { %><a
+                        href="<%= company.socialLinks.facebook %>"
+                        target="_blank"
+                        ><i class="flaticon-facebook-app-symbol me-2"></i></a
+                      ><% } %> <% if (company.socialLinks?.twitter) { %><a
+                        href="<%= company.socialLinks.twitter %>"
+                        target="_blank"
+                        ><i class="flaticon-twitter me-2"></i></a
+                      ><% } %> <% if (company.socialLinks?.linkedin) { %><a
+                        href="<%= company.socialLinks.linkedin %>"
+                        target="_blank"
+                        ><i class="flaticon-linkedin me-2"></i></a
+                      ><% } %> <% if (company.socialLinks?.instagram) { %><a
+                        href="<%= company.socialLinks.instagram %>"
+                        target="_blank"
+                        ><i class="flaticon-instagram me-2"></i></a
+                      ><% } %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
