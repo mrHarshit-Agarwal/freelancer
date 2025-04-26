@@ -14,6 +14,14 @@ const aboutRoutes = require('./Routes/aboutRoutes');
 const blogRoutes = require('./Routes/blogRoutes');
 const blogDetailRoutes = require('./Routes/blogDetailRoutes');
 const homeRoutes = require('./Routes/homeRoutes');
+const categoryRoutes = require('./Routes/categoryRoutes');
+const categoryDetailRoutes = require('./Routes/categoriesDetailRoutes');
+const categoryFilterRoutes = require('./Routes/categoriesFilterRoutes');
+const bidRooutes = require('./Routes/bidRoutes');
+const bidDetailRoutes = require('./Routes/bidDetailRoutes');
+const addCartRoutes = require('./Routes/addCartRoutes');
+const chatRoutes = require('./Routes/chatRoutes');
+
 
 require("dotenv").config();
 const app = express();
@@ -35,8 +43,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 // Main user auth routes (login/signup etc.)
-app.use("/", userRoutes, contactRoutes, companyRoutes, companyDetailsRoutes, freelancerInviteRoutes, freelancerDetailsRoutes,
-   uploadRoutes, freelancerRoutes, aboutRoutes, blogRoutes, blogDetailRoutes, homeRoutes );
+app.use("/", userRoutes, contactRoutes, companyRoutes, companyDetailsRoutes, freelancerInviteRoutes, freelancerDetailsRoutes, uploadRoutes, freelancerRoutes, aboutRoutes,
+   blogRoutes, blogDetailRoutes, homeRoutes, categoryRoutes, categoryDetailRoutes, categoryFilterRoutes, bidRooutes, bidDetailRoutes, addCartRoutes, chatRoutes );
 
 
 // Route to render fonts/service.ejs
