@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const cartController = require("../controllers/admin/addCartController");
-const upload = require("../middleware/multer");
+const dynamicStorage = require("../middleware/multer");
 
-router.post("/cart", upload.single("image"), cartController.addToCart);
-router.get("/cart", cartController.getCart);
-router.get("/cart/:id", cartController.getCartById);
-router.put("/cart/:id", upload.single("image"), cartController.updateCart);
-router.delete("/cart/:id", cartController.deleteCart);
+
+const upload = dynamicStorage("cartImages");
+
+router.post("/cart", upload.single("image"), cartController.createCartItem);
+router.get("/cart", cartController.getAllCartItems);
+router.get("/cart/:slug", cartController.getCartItemBySlug);
+router.put("/cart/:slug", upload.single("image"), cartController.updateCartItemBySlug);
+router.delete("/cart/:slug", cartController.deleteCartItemBySlug);
 
 module.exports = router;

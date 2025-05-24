@@ -1,94 +1,232 @@
-const { HomeSlider, SubSlider, Category, Service, Home, parentCategory, ParentCategory, FeaturedProject, LatestProject, TopratedProject, PricingPlan, TeamCategory, Blog, Testimonial, Faq, HomeBlog } = require('../../models/homeModel');
+const { Slider, ClusterSlider, Category, Service, ParentCategory, FeaturedProject, LatestProject, TopratedProject, PricingPlan, TeamCategory, Blog, Testimonial, Faq, HomeBlog, HeroSectionSetting } = require('../../models/homeModel');
+const fs = require("fs");
+const path = require("path");
+const slugify = require("slugify");
 
 // HomeSlider
 const createSlider = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : '';
-    const slider = await HomeSlider.create({ ...req.body, image });
+    const { name, status } = req.body;
+    const image = req.file?.filename;
+
+    const slider = new Slider({ name, status, image });
+    await slider.save();
+
     res.status(201).json(slider);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const getSliders = async (req, res) => {
+const getAllSliders = async (req, res) => {
   try {
-    const sliders = await HomeSlider.find();
+    const sliders = await Slider.find();
     res.json(sliders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const updateSlider = async (req, res) => {
+const getSliderBySlug = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : undefined;
-    const updateData = { ...req.body };
-    if (image) updateData.image = image;
-
-    const updated = await HomeSlider.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    res.json(updated);
+    const slider = await Slider.findOne({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Slider not found" });
+    res.json(slider);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const deleteSlider = async (req, res) => {
+const updateSliderBySlug = async (req, res) => {
   try {
-    await HomeSlider.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Slider deleted' });
+    const { name, status } = req.body;
+    const slider = await Slider.findOne({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Slider not found" });
+
+    if (name) {
+      slider.name = name;
+      slider.slug = slugify(name, { lower: true, strict: true });
+    }
+
+    if (typeof status !== "undefined") slider.status = status;
+
+    if (req.file) {
+      if (slider.image) {
+        const oldPath = path.join("uploads/slider", slider.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      slider.image = req.file.filename;
+    }
+
+    await slider.save();
+    res.json(slider);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+const deleteSliderBySlug = async (req, res) => {
+  try {
+    const slider = await Slider.findOneAndDelete({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Slider not found" });
+
+    if (slider.image) {
+      const imgPath = path.join("uploads/slider", slider.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Slider deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 
 // SubSlider
-const createSubSlider = async (req, res) => {
+const createClusterSlider = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : '';
-    const slider = await SubSlider.create({ ...req.body, image });
-    res.status(201).json(slider);
+    const { name, status } = req.body;
+    const image = req.file?.filename;
+
+    const slider = new ClusterSlider({ name, image, status });
+    await slider.save();
+
+    res.status(201).json({ message: "Cluster slider created", data: slider });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const getSubSliders = async (req, res) => {
+const getAllClusterSliders = async (req, res) => {
   try {
-    const sliders = await SubSlider.find();
-    res.json(sliders);
+    const sliders = await ClusterSlider.find();
+    res.status(200).json(sliders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const updateSubSlider = async (req, res) => {
+const getClusterSliderBySlug = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : undefined;
-    const updateData = { ...req.body };
-    if (image) updateData.image = image;
+    const slider = await ClusterSlider.findOne({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Not found" });
 
-    const updated = await SubSlider.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    res.json(updated);
+    res.status(200).json(slider);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const deleteSubSlider = async (req, res) => {
+const updateClusterSliderBySlug = async (req, res) => {
   try {
-    await SubSlider.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Sub slider deleted' });
+    const { name, status } = req.body;
+    const slider = await ClusterSlider.findOne({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Not found" });
+
+    if (req.file) {
+      if (slider.image) {
+        const oldPath = path.join("uploads/clusterSlider", slider.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      slider.image = req.file.filename;
+    }
+
+    if (name) slider.name = name;
+    if (typeof status !== "undefined") slider.status = status;
+
+    await slider.save();
+    res.status(200).json({ message: "Updated successfully", data: slider });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Category
+const deleteClusterSliderBySlug = async (req, res) => {
+  try {
+    const slider = await ClusterSlider.findOneAndDelete({ slug: req.params.slug });
+    if (!slider) return res.status(404).json({ error: "Not found" });
+
+    if (slider.image) {
+      const imgPath = path.join("uploads/clusterSlider", slider.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.status(200).json({ message: "Deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+//hero section settings
+const createHeroSection = async (req, res) => {
+  try {
+    const hero = new HeroSectionSetting(req.body);
+    await hero.save();
+    res.status(201).json({ message: "Hero section setting created", data: hero });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getAllHeroSections = async (req, res) => {
+  try {
+    const sections = await HeroSectionSetting.find();
+    res.status(200).json(sections);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getHeroSectionBySlug = async (req, res) => {
+  try {
+    const hero = await HeroSectionSetting.findOne({ slug: req.params.slug });
+    if (!hero) return res.status(404).json({ error: "Hero section not found" });
+    res.status(200).json(hero);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const updateHeroSectionBySlug = async (req, res) => {
+  try {
+    const hero = await HeroSectionSetting.findOneAndUpdate(
+      { slug: req.params.slug },
+      req.body,
+      { new: true }
+    );
+    if (!hero) return res.status(404).json({ error: "Hero section not found" });
+    res.status(200).json({ message: "Hero section updated", data: hero });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteHeroSectionBySlug = async (req, res) => {
+  try {
+    const hero = await HeroSectionSetting.findOneAndDelete({ slug: req.params.slug });
+    if (!hero) return res.status(404).json({ error: "Hero section not found" });
+    res.status(200).json({ message: "Hero section deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 const createCategory = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : '';
-    const category = await Category.create({ ...req.body, image });
+    const { title, description, status } = req.body;
+    const image = req.file?.filename;
+
+    const category = new Category({
+      title,
+      description,
+      status,
+      image,
+    });
+
+    await category.save();
     res.status(201).json(category);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -104,33 +242,70 @@ const getCategories = async (req, res) => {
   }
 };
 
-const updateCategory = async (req, res) => {
+const getCategoryBySlug = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : undefined;
-    const updateData = { ...req.body };
-    if (image) updateData.image = image;
-
-    const updated = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    res.json(updated);
+    const category = await Category.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+    res.json(category);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const deleteCategory = async (req, res) => {
+const updateCategoryBySlug = async (req, res) => {
   try {
-    await Category.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Category deleted' });
+    const { title, description, status } = req.body;
+    const category = await Category.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    if (title) {
+      category.title = title;
+      category.slug = slugify(title, { lower: true, strict: true });
+    }
+
+    if (description) category.description = description;
+    if (typeof status !== "undefined") category.status = status;
+    if (req.file) {
+      if (category.image) {
+        const oldPath = path.join("uploads/category", category.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      category.image = req.file.filename;
+    }
+
+    await category.save();
+    res.json(category);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+const deleteCategoryBySlug = async (req, res) => {
+  try {
+    const category = await Category.findOneAndDelete({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    if (category.image) {
+      const imgPath = path.join("uploads/category", category.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Category deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 // Service
 const createService = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : '';
-    const service = await Service.create({ ...req.body, image });
+    const { title, description, status } = req.body;
+    const image = req.file?.filename;
+
+    const service = new Service({ title, description, status, image });
+    await service.save();
+
     res.status(201).json(service);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -146,529 +321,823 @@ const getServices = async (req, res) => {
   }
 };
 
-const updateService = async (req, res) => {
+const getServiceBySlug = async (req, res) => {
   try {
-    const image = req.file ? req.file.filename : undefined;
-    const updateData = { ...req.body };
-    if (image) updateData.image = image;
-
-    const updated = await Service.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    res.json(updated);
+    const service = await Service.findOne({ slug: req.params.slug });
+    if (!service) return res.status(404).json({ error: "Service not found" });
+    res.json(service);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const deleteService = async (req, res) => {
+const updateServiceBySlug = async (req, res) => {
   try {
-    await Service.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Service deleted' });
+    const { title, description, status } = req.body;
+    const service = await Service.findOne({ slug: req.params.slug });
+    if (!service) return res.status(404).json({ error: "Service not found" });
+
+    if (title) {
+      service.title = title;
+      service.slug = slugify(title, { lower: true, strict: true });
+    }
+
+    if (description) service.description = description;
+    if (typeof status !== "undefined") service.status = status;
+
+    if (req.file) {
+      if (service.image) {
+        const oldPath = path.join("uploads/service", service.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      service.image = req.file.filename;
+    }
+
+    await service.save();
+    res.json(service);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+const deleteServiceBySlug = async (req, res) => {
+  try {
+    const service = await Service.findOneAndDelete({ slug: req.params.slug });
+    if (!service) return res.status(404).json({ error: "Service not found" });
+
+    if (service.image) {
+      const imgPath = path.join("uploads/service", service.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Service deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 //parent category
-
 const createParentCategory = async (req, res) => {
   try {
-    const { title, freelancerCount } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { title, freelancerCount, status } = req.body;
+    const image = req.file?.filename;
 
-    const newCategory = new ParentCategory({ title, freelancerCount, image });
-    await newCategory.save();
+    const category = new ParentCategory({ title, freelancerCount, image, status });
+    await category.save();
 
-    res.status(201).json({ success: true, message: 'Parent category created', data: newCategory });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error creating category', error: error.message });
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 const getAllParentCategories = async (req, res) => {
   try {
-    const categories = await ParentCategory.find().sort({ _id: -1 });
-    res.status(200).json({ success: true, data: categories });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching categories', error: error.message });
+    const categories = await ParentCategory.find();
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+const getParentCategoryBySlug = async (req, res) => {
+  try {
+    const category = await ParentCategory.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Parent category not found" });
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateParentCategory = async (req, res) => {
+const updateParentCategoryBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, freelancerCount } = req.body;
-    const image = req.file ? req.file.filename : undefined;
+    const { title, freelancerCount, status } = req.body;
+    const category = await ParentCategory.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Parent category not found" });
 
-    const updateData = { title, freelancerCount };
-    if (image) updateData.image = image;
-
-    const updatedCategory = await ParentCategory.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedCategory) {
-      return res.status(404).json({ success: false, message: 'Category not found' });
+    if (title) {
+      category.title = title;
+      category.slug = slugify(title, { lower: true, strict: true });
     }
 
-    res.status(200).json({ success: true, message: 'Category updated', data: updatedCategory });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error updating category', error: error.message });
-  }
-};
+    if (freelancerCount) category.freelancerCount = freelancerCount;
+    if (typeof status !== "undefined") category.status = status;
 
-const deleteParentCategory = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const deletedCategory = await ParentCategory.findByIdAndDelete(id);
-    if (!deletedCategory) {
-      return res.status(404).json({ success: false, message: 'Category not found' });
+    if (req.file) {
+      if (category.image) {
+        const oldPath = path.join("uploads/parentCategory", category.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      category.image = req.file.filename;
     }
 
-    res.status(200).json({ success: true, message: 'Category deleted' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error deleting category', error: error.message });
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+const deleteParentCategoryBySlug = async (req, res) => {
+  try {
+    const category = await ParentCategory.findOneAndDelete({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Parent category not found" });
+
+    if (category.image) {
+      const imgPath = path.join("uploads/parentCategory", category.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Parent category deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 //FeaturedProject
 
 const createFeaturedProject = async (req, res) => {
   try {
-    const { priceRange, priceType, duration } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { priceRange, priceType, duration, status } = req.body;
+    const image = req.file?.filename;
 
-    const newProject = new FeaturedProject({ priceRange, priceType, duration, image });
-    await newProject.save();
-    res.status(201).json({ message: 'Project created', project: newProject });
-  } catch (error) {
-    res.status(500).json({ error: 'Creation failed' });
+    const project = new FeaturedProject({ priceRange, priceType, duration, image, status });
+    await project.save();
+
+    res.status(201).json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 const getAllFeaturedProjects = async (req, res) => {
   try {
     const projects = await FeaturedProject.find();
-    res.status(200).json(projects);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateFeaturedProject = async (req, res) => {
+const getFeaturedProjectBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { priceRange, priceType, duration } = req.body;
-    const image = req.file ? req.file.filename : undefined;
-
-    const updateData = { priceRange, priceType, duration };
-    if (image) updateData.image = image;
-
-    const updated = await FeaturedProject.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Project updated', updated });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    const project = await FeaturedProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteFeaturedProject = async (req, res) => {
+const updateFeaturedProjectBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    await FeaturedProject.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Project deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Deletion failed' });
+    const { priceRange, priceType, duration, status } = req.body;
+    const project = await FeaturedProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    if (priceRange) project.priceRange = priceRange;
+    if (priceType) project.priceType = priceType;
+    if (duration) project.duration = duration;
+    if (typeof status !== "undefined") project.status = status;
+
+    if (req.file) {
+      if (project.image) {
+        const oldPath = path.join("uploads/featuredProject", project.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      project.image = req.file.filename;
+    }
+
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteFeaturedProjectBySlug = async (req, res) => {
+  try {
+    const project = await FeaturedProject.findOneAndDelete({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    if (project.image) {
+      const imgPath = path.join("uploads/featuredProject", project.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Project deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 //latest project 
 const createLatestProject = async (req, res) => {
   try {
-    const { title, bids, priceType, duration, description, priceRange } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { title, bids, priceType, duration, description, priceRange, status } = req.body;
+    const image = req.file?.filename;
 
-    const newProject = new LatestProject({ title, bids, priceType, duration, description, priceRange, image });
-    await newProject.save();
-    res.status(201).json({ message: 'Latest project created', newProject });
-  } catch (error) {
-    res.status(500).json({ error: 'Creation failed' });
+    const project = new LatestProject({
+      title,
+      bids,
+      priceType,
+      duration,
+      description,
+      priceRange,
+      image,
+      status
+    });
+
+    await project.save();
+    res.status(201).json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 const getAllLatestProjects = async (req, res) => {
   try {
     const projects = await LatestProject.find();
-    res.status(200).json(projects);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetching projects failed' });
+    res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateLatestProject = async (req, res) => {
+const getLatestProjectBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, bids, priceType, duration, description, priceRange } = req.body;
-    const image = req.file ? req.file.filename : undefined;
-
-    const updateData = { title, bids, priceType, duration, description, priceRange };
-    if (image) updateData.image = image;
-
-    const updated = await LatestProject.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Project updated', updated });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    const project = await LatestProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Latest project not found" });
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteLatestProject = async (req, res) => {
+const updateLatestProjectBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    await LatestProject.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Project deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Delete failed' });
+    const project = await LatestProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Latest project not found" });
+
+    const {
+      title,
+      bids,
+      priceType,
+      duration,
+      description,
+      priceRange,
+      status
+    } = req.body;
+
+    if (title) {
+      project.title = title;
+      project.slug = slugify(title, { lower: true, strict: true });
+    }
+
+    if (bids) project.bids = bids;
+    if (priceType) project.priceType = priceType;
+    if (duration) project.duration = duration;
+    if (description) project.description = description;
+    if (priceRange) project.priceRange = priceRange;
+    if (typeof status !== "undefined") project.status = status;
+
+    if (req.file) {
+      if (project.image) {
+        const oldPath = path.join("uploads/latestProject", project.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      project.image = req.file.filename;
+    }
+
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
+const deleteLatestProjectBySlug = async (req, res) => {
+  try {
+    const project = await LatestProject.findOneAndDelete({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Latest project not found" });
+
+    if (project.image) {
+      const imgPath = path.join("uploads/latestProject", project.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Latest project deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 //TopratedProject
 
 const createTopratedProject = async (req, res) => {
   try {
-    const { title, bids, priceType, duration, description, priceRange } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { title, bids, priceType, duration, description, priceRange, status } = req.body;
+    const image = req.file?.filename;
 
-    const project = new TopratedProject({ title, bids, priceType, duration, description, priceRange, image });
+    const project = new TopRatedProject({
+      title,
+      bids,
+      priceType,
+      duration,
+      description,
+      priceRange,
+      image,
+      status,
+    });
+
     await project.save();
-    res.status(201).json({ message: 'Toprated project created', project });
-  } catch (error) {
-    res.status(500).json({ error: 'Create failed' });
+    res.status(201).json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 const getAllTopratedProjects = async (req, res) => {
   try {
-    const projects = await TopratedProject.find();
-    res.status(200).json(projects);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetch failed' });
-  }
-};
-
-const updateTopratedProject = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, bids, priceType, duration, description, priceRange } = req.body;
-    const image = req.file ? req.file.filename : undefined;
-
-    const updateData = { title, bids, priceType, duration, description, priceRange };
-    if (image) updateData.image = image;
-
-    const updated = await TopratedProject.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Project updated', updated });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
-  }
-};
-
-const deleteTopratedProject = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await TopratedProject.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Project deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Deletion failed' });
-  }
-};
-
-//priing plan
-const createPlan = async (req, res) => {
-  try {
-    const { title, price, duration, tagline, description, features, isRecommended } = req.body;
-
-    const newPlan = new PricingPlan({
-      title,
-      price,
-      duration,
-      tagline,
-      description,
-      features: Array.isArray(features) ? features : features.split('\n'),
-      isRecommended
-    });
-
-    await newPlan.save();
-    res.status(201).json({ message: 'Pricing plan created', newPlan });
+    const projects = await TopRatedProject.find();
+    res.json(projects);
   } catch (err) {
-    res.status(500).json({ error: 'Creation failed' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getAllPlans = async (req, res) => {
+const getTopRatedProjectBySlug = async (req, res) => {
   try {
-    const plans = await PricingPlan.find();
-    res.status(200).json(plans);
+    const project = await TopRatedProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json(project);
   } catch (err) {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updatePlan = async (req, res) => {
+const updateTopRatedProjectBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, price, duration, tagline, description, features, isRecommended } = req.body;
+    const project = await TopRatedProject.findOne({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
 
-    const updateData = {
-      title,
-      price,
-      duration,
-      tagline,
-      description,
-      features: Array.isArray(features) ? features : features.split('\n'),
-      isRecommended
-    };
+    const { title, bids, priceType, duration, description, priceRange, status } = req.body;
 
-    const updatedPlan = await PricingPlan.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Plan updated', updatedPlan });
-  } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
-  }
-};
-
-const deletePlan = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await PricingPlan.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Plan deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Deletion failed' });
-  }
-};
-
-// team category
-const createTeamMember = async (req, res) => {
-  try {
-    const { name, designation, socialLinks } = req.body;
-    const image = req.file ? req.file.filename : null;
-
-    let parsedSocialLinks = [];
-    if (socialLinks) {
-      try {
-        parsedSocialLinks = JSON.parse(socialLinks);
-      } catch (parseError) {
-        return res.status(400).json({ error: 'Invalid socialLinks format' });
-      }
+    if (title) {
+      project.title = title;
+      project.slug = slugify(title, { lower: true, strict: true });
     }
 
-    const member = new TeamCategory({
+    if (bids) project.bids = bids;
+    if (priceType) project.priceType = priceType;
+    if (duration) project.duration = duration;
+    if (description) project.description = description;
+    if (priceRange) project.priceRange = priceRange;
+    if (typeof status !== "undefined") project.status = status;
+
+    if (req.file) {
+      if (project.image) {
+        const oldPath = path.join("uploads/topRatedProject", project.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      project.image = req.file.filename;
+    }
+
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteTopRatedProjectBySlug = async (req, res) => {
+  try {
+    const project = await TopRatedProject.findOneAndDelete({ slug: req.params.slug });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    if (project.image) {
+      const imgPath = path.join("uploads/topRatedProject", project.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Top Rated Project deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+//priing plan
+const createPricingPlan = async (req, res) => {
+  try {
+    const plan = new PricingPlan(req.body);
+    await plan.save();
+    res.status(201).json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getPricingPlans = async (req, res) => {
+  try {
+    const plans = await PricingPlan.find();
+    res.json(plans);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getPricingPlanBySlug = async (req, res) => {
+  try {
+    const plan = await PricingPlan.findOne({ slug: req.params.slug });
+    if (!plan) return res.status(404).json({ error: "Pricing plan not found" });
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const updatePricingPlanBySlug = async (req, res) => {
+  try {
+    const plan = await PricingPlan.findOne({ slug: req.params.slug });
+    if (!plan) return res.status(404).json({ error: "Pricing plan not found" });
+
+    const {
+      title,
+      price,
+      duration,
+      tagline,
+      description,
+      features,
+      isRecommended,
+      status,
+    } = req.body;
+
+    if (title) {
+      plan.title = title;
+      plan.slug = slugify(title, { lower: true, strict: true });
+    }
+
+    if (typeof price !== "undefined") plan.price = price;
+    if (duration) plan.duration = duration;
+    if (tagline) plan.tagline = tagline;
+    if (description) plan.description = description;
+    if (features) plan.features = features;
+    if (typeof isRecommended !== "undefined") plan.isRecommended = isRecommended;
+    if (typeof status !== "undefined") plan.status = status;
+
+    await plan.save();
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deletePricingPlanBySlug = async (req, res) => {
+  try {
+    const plan = await PricingPlan.findOneAndDelete({ slug: req.params.slug });
+    if (!plan) return res.status(404).json({ error: "Pricing plan not found" });
+    res.json({ message: "Pricing plan deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// team category
+
+const createTeamCategory = async (req, res) => {
+  try {
+    const { name, designation, socialLinks, status } = req.body;
+    const image = req.file?.filename;
+
+    const category = new TeamCategory({
       name,
       designation,
       image,
-      socialLinks: parsedSocialLinks
+      socialLinks,
+      status,
     });
 
-    await member.save();
-    res.status(201).json({ message: 'Team member created', member });
+    await category.save();
+    res.status(201).json(category);
   } catch (err) {
-    console.log("Create Team Member Error:", err); // <--- important
-    res.status(500).json({ error: 'Create failed' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getAllTeamMembers = async (req, res) => {
+const getTeamCategories = async (req, res) => {
   try {
-    const members = await TeamCategory.find();
-    res.status(200).json(members);
+    const categories = await TeamCategory.find();
+    res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateTeamMember = async (req, res) => {
+const getTeamCategoryBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, designation, socialLinks } = req.body;
-    const image = req.file ? req.file.filename : undefined;
-
-    const updateData = {
-      name,
-      designation,
-      socialLinks: JSON.parse(socialLinks)
-    };
-    if (image) updateData.image = image;
-
-    const updated = await TeamCategory.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Team member updated', updated });
+    const category = await TeamCategory.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Team category not found" });
+    res.json(category);
   } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteTeamMember = async (req, res) => {
+const updateTeamCategoryBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    await TeamCategory.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Team member deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Delete failed' });
-  }
-};
+    const category = await TeamCategory.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Team category not found" });
 
-//blog
-const createBlog = async (req, res) => {
-  try {
-    const { title, publishDate, commentsCount, shortDescription } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { name, designation, socialLinks, status } = req.body;
 
-    if (!title || !publishDate) {
-      return res.status(400).json({ error: 'Title and publishDate are required' });
+    if (name) {
+      category.name = name;
+      category.slug = slugify(name, { lower: true, strict: true });
     }
 
-    const newBlog = new HomeBlog({
-      title,
-      publishDate: new Date(publishDate),
-      commentsCount: Number(commentsCount),
-      shortDescription,
-      image
-    });
+    if (designation) category.designation = designation;
+    if (socialLinks) category.socialLinks = socialLinks;
+    if (typeof status !== "undefined") category.status = status;
 
-    await newBlog.save();
-    res.status(201).json({ message: 'Blog created', newBlog });
-  } catch (error) {
-    console.log("Create Blog Error:", error); // log error to see in console
-    res.status(500).json({ error: 'Create failed', message: error.message });
+    if (req.file) {
+      if (category.image) {
+        const oldPath = path.join("uploads/teamCategory", category.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      category.image = req.file.filename;
+    }
+
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getAllBlogs = async (req, res) => {
+const deleteTeamCategoryBySlug = async (req, res) => {
   try {
-    const blogs = await HomeBlog.find();
-    res.status(200).json(blogs);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetch failed' });
+    const category = await TeamCategory.findOneAndDelete({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ error: "Team category not found" });
+
+    if (category.image) {
+      const imgPath = path.join("uploads/teamCategory", category.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Team category deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateBlog = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, publishDate, commentsCount, shortDescription } = req.body;
-    const image = req.file ? req.file.filename : undefined;
 
-    const updateData = {
+//blog
+
+const createHomeBlog = async (req, res) => {
+  try {
+    const { title, publishDate, commentsCount, shortDescription, status } = req.body;
+    const image = req.file?.filename;
+
+    const blog = new HomeBlog({
       title,
       publishDate,
       commentsCount,
-      shortDescription
-    };
-    if (image) updateData.image = image;
+      shortDescription,
+      image,
+      status,
+    });
 
-    const updatedBlog = await HomeBlog.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Blog updated', updatedBlog });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    await blog.save();
+    res.status(201).json(blog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
-
-const deleteBlog = async (req, res) => {
+const getHomeBlogs = async (req, res) => {
   try {
-    const { id } = req.params;
-    await HomeBlog.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Blog deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Deletion failed' });
+    const blogs = await HomeBlog.find();
+    res.json(blogs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
+const getHomeBlogBySlug = async (req, res) => {
+  try {
+    const blog = await HomeBlog.findOne({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ error: "Blog not found" });
+    res.json(blog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const updateHomeBlogBySlug = async (req, res) => {
+  try {
+    const blog = await HomeBlog.findOne({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ error: "Blog not found" });
+
+    const { title, publishDate, commentsCount, shortDescription, status } = req.body;
+
+    if (title) {
+      blog.title = title;
+      blog.slug = slugify(title, { lower: true, strict: true });
+    }
+    if (publishDate) blog.publishDate = publishDate;
+    if (commentsCount) blog.commentsCount = commentsCount;
+    if (shortDescription) blog.shortDescription = shortDescription;
+    if (typeof status !== "undefined") blog.status = status;
+
+    if (req.file) {
+      if (blog.image) {
+        const oldPath = path.join("uploads/homeBlog", blog.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      blog.image = req.file.filename;
+    }
+
+    await blog.save();
+    res.json(blog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteHomeBlogBySlug = async (req, res) => {
+  try {
+    const blog = await HomeBlog.findOneAndDelete({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ error: "Blog not found" });
+
+    if (blog.image) {
+      const imgPath = path.join("uploads/homeBlog", blog.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Blog deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 // Testimonial
 
 const createTestimonial = async (req, res) => {
   try {
-    const { name, designation, message } = req.body;
-    const image = req.file ? req.file.filename : null;
+    const { name, designation, message, status } = req.body;
+    const image = req.file?.filename;
 
-    const newTestimonial = new Testimonial({ name, designation, message, image });
-    await newTestimonial.save();
-    res.status(201).json({ message: 'Testimonial created', newTestimonial });
-  } catch (error) {
-    res.status(500).json({ error: 'Creation failed' });
+    const testimonial = new Testimonial({
+      name,
+      designation,
+      message,
+      image,
+      status,
+    });
+
+    await testimonial.save();
+    res.status(201).json(testimonial);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
-
-const getAllTestimonials = async (req, res) => {
+const getTestimonials = async (req, res) => {
   try {
     const testimonials = await Testimonial.find();
-    res.status(200).json(testimonials);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.json(testimonials);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateTestimonial = async (req, res) => {
+const getTestimonialBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, designation, message } = req.body;
-    const image = req.file ? req.file.filename : undefined;
-
-    const updateData = { name, designation, message };
-    if (image) updateData.image = image;
-
-    const updated = await Testimonial.findByIdAndUpdate(id, updateData, { new: true });
-    res.status(200).json({ message: 'Testimonial updated', updated });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    const testimonial = await Testimonial.findOne({ slug: req.params.slug });
+    if (!testimonial) return res.status(404).json({ error: "Testimonial not found" });
+    res.json(testimonial);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteTestimonial = async (req, res) => {
+const updateTestimonialBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    await Testimonial.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Testimonial deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Deletion failed' });
+    const testimonial = await Testimonial.findOne({ slug: req.params.slug });
+    if (!testimonial) return res.status(404).json({ error: "Testimonial not found" });
+
+    const { name, designation, message, status } = req.body;
+
+    if (name) {
+      testimonial.name = name;
+      testimonial.slug = slugify(name, { lower: true, strict: true });
+    }
+
+    if (designation) testimonial.designation = designation;
+    if (message) testimonial.message = message;
+    if (typeof status !== "undefined") testimonial.status = status;
+
+    if (req.file) {
+      if (testimonial.image) {
+        const oldPath = path.join("uploads/testimonial", testimonial.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      testimonial.image = req.file.filename;
+    }
+
+    await testimonial.save();
+    res.json(testimonial);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
+const deleteTestimonialBySlug = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findOneAndDelete({ slug: req.params.slug });
+    if (!testimonial) return res.status(404).json({ error: "Testimonial not found" });
+
+    if (testimonial.image) {
+      const imgPath = path.join("uploads/testimonial", testimonial.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Testimonial deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 //faq
 const createFaq = async (req, res) => {
   try {
-    const { question, answer } = req.body;
+    const { question, answer, status } = req.body;
 
-    const newFaq = new Faq({ question, answer });
-    await newFaq.save();
-    res.status(201).json({ message: 'FAQ created', newFaq });
-  } catch (error) {
-    res.status(500).json({ error: 'Creation failed' });
+    const faq = new Faq({ question, answer, status });
+    await faq.save();
+
+    res.status(201).json(faq);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getAllFaqs = async (req, res) => {
+const getFaqs = async (req, res) => {
   try {
     const faqs = await Faq.find();
-    res.status(200).json(faqs);
-  } catch (error) {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.json(faqs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const updateFaq = async (req, res) => {
+const getFaqBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { question, answer } = req.body;
-
-    const updatedFaq = await Faq.findByIdAndUpdate(id, { question, answer }, { new: true });
-    res.status(200).json({ message: 'FAQ updated', updatedFaq });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    const faq = await Faq.findOne({ slug: req.params.slug });
+    if (!faq) return res.status(404).json({ error: "FAQ not found" });
+    res.json(faq);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteFaq = async (req, res) => {
+const updateFaqBySlug = async (req, res) => {
   try {
-    const { id } = req.params;
-    await Faq.findByIdAndDelete(id);
-    res.status(200).json({ message: 'FAQ deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Deletion failed' });
+    const faq = await Faq.findOne({ slug: req.params.slug });
+    if (!faq) return res.status(404).json({ error: "FAQ not found" });
+
+    const { question, answer, status } = req.body;
+
+    if (question) {
+      faq.question = question;
+      faq.slug = slugify(question, { lower: true, strict: true });
+    }
+
+    if (answer) faq.answer = answer;
+    if (typeof status !== "undefined") faq.status = status;
+
+    await faq.save();
+    res.json(faq);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
+const deleteFaqBySlug = async (req, res) => {
+  try {
+    const faq = await Faq.findOneAndDelete({ slug: req.params.slug });
+    if (!faq) return res.status(404).json({ error: "FAQ not found" });
+
+    res.json({ message: "FAQ deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 
 
@@ -676,8 +1145,9 @@ const deleteFaq = async (req, res) => {
 // Get all home data in one request
 const getAllHomeData = async (req, res) => {
   try {
-    const slider = await HomeSlider.find();
-    const subSlider = await SubSlider.find();
+    const slider = await Slider.find();
+    const clusterSlider = await ClusterSlider.find();
+    const heroSectionSetting = await HeroSectionSetting.find();
     const category = await Category.find();
     const service = await Service.find();
     const parentCategory = await ParentCategory.find();
@@ -694,7 +1164,7 @@ const getAllHomeData = async (req, res) => {
 
     
 
-    res.status(200).json({ slider, subSlider, category, service, parentCategory, featuredproject, latestProject, topratedProject,
+    res.status(200).json({ slider, clusterSlider, heroSectionSetting, category, service, parentCategory, featuredproject, latestProject, topratedProject,
        pricingPlan, teamCategory, homeblog, testimonials, faq });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
@@ -702,86 +1172,104 @@ const getAllHomeData = async (req, res) => {
 };
 
 module.exports = {
-  // HomeSlider
+  // Slider
   createSlider,
-  getSliders,
-  updateSlider,
-  deleteSlider,
+  getSliderBySlug,
+  getAllSliders,
+  updateSliderBySlug,
+  deleteSliderBySlug,
 
   // SubSlider
-  createSubSlider,
-  getSubSliders,
-  updateSubSlider,
-  deleteSubSlider,
+  createClusterSlider,
+  getClusterSliderBySlug,
+  getAllClusterSliders,
+  updateClusterSliderBySlug,
+  deleteClusterSliderBySlug,
+
+  // hero section settings
+  createHeroSection,
+  getHeroSectionBySlug,
+  getAllHeroSections, 
+  updateHeroSectionBySlug,
+  deleteHeroSectionBySlug,
 
   // Category
   createCategory,
   getCategories,
-  updateCategory,
-  deleteCategory,
+  getCategoryBySlug,
+  updateCategoryBySlug,
+  deleteCategoryBySlug,
 
   // Service
   createService,
   getServices,
-  updateService,
-  deleteService,
+  getServiceBySlug,
+  updateServiceBySlug,
+  deleteServiceBySlug,
 
   //parentCategory
   createParentCategory,
   getAllParentCategories,
-  updateParentCategory,
-  deleteParentCategory,
+  getParentCategoryBySlug,
+  updateParentCategoryBySlug,
+  deleteParentCategoryBySlug,
 
   //featured project
   createFeaturedProject,
   getAllFeaturedProjects,
-  updateFeaturedProject,
-  deleteFeaturedProject,
+  getFeaturedProjectBySlug,
+  updateFeaturedProjectBySlug,
+  deleteFeaturedProjectBySlug,
 
   //latest projects
   createLatestProject,
   getAllLatestProjects,
-  updateLatestProject,
-  deleteLatestProject,
+  getLatestProjectBySlug,
+  updateLatestProjectBySlug,
+  deleteLatestProjectBySlug,
 
   //TopratedProject
   createTopratedProject,
   getAllTopratedProjects,
-  updateTopratedProject,
-  deleteTopratedProject,
+  getTopRatedProjectBySlug,
+  updateTopRatedProjectBySlug,
+  deleteTopRatedProjectBySlug,
 
   //pricing plans
-  createPlan,
-  getAllPlans,
-  updatePlan, 
-  deletePlan,
+  createPricingPlan,
+  getPricingPlans,
+  getPricingPlanBySlug,
+  updatePricingPlanBySlug, 
+  deletePricingPlanBySlug,
 
   //team category 
-  createTeamMember,
-  getAllTeamMembers,
-  updateTeamMember,
-  deleteTeamMember,
+  createTeamCategory,
+  getTeamCategories, 
+  getTeamCategoryBySlug,
+  updateTeamCategoryBySlug,
+  deleteTeamCategoryBySlug,
 
   //blog
-  createBlog,
-  getAllBlogs,
-  updateBlog,
-  deleteBlog,
+  createHomeBlog, 
+  getHomeBlogs,
+  getHomeBlogBySlug,
+  updateHomeBlogBySlug,
+  deleteHomeBlogBySlug,
 
   //testimonials
   createTestimonial,
-  getAllTestimonials,
-  updateTestimonial,
-  deleteTestimonial,
+  getTestimonials,
+  getTestimonialBySlug,
+  updateTestimonialBySlug,
+  deleteTestimonialBySlug,
 
   //faq
-  createFaq,
-  getAllFaqs,
-  updateFaq,
-  deleteFaq,
-
-
-
+ createFaq,
+ getFaqs,
+ getFaqBySlug,
+ updateFaqBySlug,
+ deleteFaqBySlug,
+ 
 
   // Get all data in one request
   getAllHomeData,

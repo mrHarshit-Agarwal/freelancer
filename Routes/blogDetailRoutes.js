@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const blogDetailController = require('../controllers/admin/blogDetailController');
-const upload = require('../middleware/multer');
+const dynamicStorage = require('../middleware/multer');
 
-router.post('/blogdetail', upload.array('image'), blogDetailController.createBlogDetail);
-router.get('/blogdetail', blogDetailController.getAllBlogDetails);
-router.get('/blogdetail/:id', blogDetailController.getBlogDetailById);
-router.put('/blogdetail/:id', upload.array('image'), blogDetailController.updateBlogDetail);
-router.delete('/blogdetail/:id', blogDetailController.deleteBlogDetail);
+const upload = dynamicStorage('blogDetailImages');
+
+router.post("/blogdetail", upload.single("image"), blogDetailController.createBlogDetail);
+router.get("/blogdetail", blogDetailController.getAllBlogDetails);
+router.get("/blogdetail/:slug", blogDetailController.getBlogDetailBySlug);
+router.put("/blogdetail/:slug", upload.single("image"), blogDetailController.updateBlogDetail);
+router.delete("/blogdetail/:slug", blogDetailController.deleteBlogDetail);
 
 module.exports = router;

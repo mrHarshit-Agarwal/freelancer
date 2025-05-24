@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 const bidDetailSchema = new mongoose.Schema({
-  title: String,
+  title: { type: String, required: true },
   description: String,
   minPrice: Number,
   maxPrice: Number,
@@ -19,7 +20,7 @@ const bidDetailSchema = new mongoose.Schema({
       type: String,
       price: Number,
       duration: String,
-      description: String
+      description: String,
     }
   ],
   bidders: [
@@ -27,16 +28,27 @@ const bidDetailSchema = new mongoose.Schema({
       name: String,
       skills: [String],
       image: String,
-      description: String
+      description: String,
     }
   ],
   reviews: [
     {
       clientName: String,
       clientImage: String,
-      comment: String
+      comment: String,
     }
-  ]
+  ],
+  slug: {
+    type: String,
+    unique: true,
+  }
+});
+
+bidDetailSchema.pre("save", function (next) {
+  if (this.isModified("title")) {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
+  next();
 });
 
 module.exports = mongoose.model("BidDetail", bidDetailSchema);

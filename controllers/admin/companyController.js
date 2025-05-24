@@ -4,97 +4,67 @@ const createCompany = async (req, res) => {
   const { name, address, logoUrl, socialLinks } = req.body;
 
   if (!name || !address || !logoUrl) {
-    return res.status(400).json({
-      message: "Enter required fields",
-    });
+    return res.status(400).json({ message: "Enter required fields" });
   }
 
   try {
-    const company = await Company.create({
-      name,
-      address,
-      logoUrl,
-      socialLinks,
-    });
-
+    const company = await Company.create({ name, address, logoUrl, socialLinks });
     res.status(201).json({ message: "Company created successfully", company });
   } catch (err) {
     console.error("Create company error:", err);
-    res.status(500).json({
-      message: "Server error while creating company",
-    });
+    res.status(500).json({ message: "Server error while creating company" });
   }
 };
+
 
 const getAllCompanies = async (req, res) => {
   try {
     const companies = await Company.find().sort({ createdAt: -1 });
     res.render("fonts/companies", { companies });
   } catch (err) {
-    console.error("Fetch companies error:", err);
-    res.status(500).json({
-      message: "Error fetching companies",
-    });
+    res.status(500).json({ message: "Error fetching companies" });
   }
 };
 
-const getCompanyById = async (req, res) => {
+const getCompanyBySlug = async (req, res) => {
   try {
-    const company = await Company.findById(req.params.id);
-
-    if (!company)
-      return res.status(404).json({
-        message: "Company not found",
-      });
+    const company = await Company.findOne({ slug: req.params.slug });
+    if (!company) return res.status(404).json({ message: "Company not found" });
 
     res.status(200).json({ company });
   } catch (err) {
-    console.error("Get company error:", err);
-    res.status(500).json({
-      message: "Error fetching company",
-    });
+    res.status(500).json({ message: "Error fetching company" });
   }
 };
 
 const updateCompany = async (req, res) => {
   try {
     const { name, address, logoUrl, socialLinks } = req.body;
+    const company = await Company.findOne({ slug: req.params.slug });
 
-    const company = await Company.findByIdAndUpdate(
-      req.params.id,
-      {
-        name,
-        address,
-        logoUrl,
-        socialLinks,
-      },
-      { new: true }
-    );
+    if (!company) return res.status(404).json({ message: "Company not found" });
 
-    if (!company)
-      return res.status(404).json({
-        message: "Company not found",
-      });
+    company.name = name || company.name;
+    company.slug = name ? slugify(name, { lower: true, strict: true }) : company.slug;
+    company.address = address || company.address;
+    company.logoUrl = logoUrl || company.logoUrl;
+    company.socialLinks = socialLinks || company.socialLinks;
 
-    res.status(200).json({
-      message: "Company updated",
-      company,
-    });
+    await company.save();
+
+    res.status(200).json({ message: "Company updated", company });
   } catch (err) {
-    console.error("Update company error:", err);
     res.status(500).json({ message: "Error updating company" });
   }
 };
 
 const deleteCompany = async (req, res) => {
   try {
-    const company = await Company.findByIdAndDelete(req.params.id);
-
+    const company = await Company.findOneAndDelete({ slug: req.params.slug });
     if (!company) return res.status(404).json({ message: "Company not found" });
 
     res.status(200).json({ message: "Company deleted" });
   } catch (err) {
-    console.error("Delete company error:", err);
     res.status(500).json({ message: "Error deleting company" });
   }
 };
@@ -102,7 +72,7 @@ const deleteCompany = async (req, res) => {
 module.exports = {
   createCompany,
   getAllCompanies,
-  getCompanyById,
+  getCompanyBySlug,
   updateCompany,
   deleteCompany,
 };

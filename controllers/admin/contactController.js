@@ -1,17 +1,14 @@
 const Contact = require("../../models/contactModel");
 
 
-
 const createContact = async (req, res) => {
   const { name, email, message } = req.body;
-
   if (!name || !email || !message) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
     const newContact = await Contact.create({ name, email, message });
-
     res.status(201).json({
       message: "Message submitted successfully",
       contact: newContact,
@@ -22,10 +19,9 @@ const createContact = async (req, res) => {
   }
 };
 
-
 const getAllContacts = async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ _id: -1 });
+    const contacts = await Contact.find().sort({ createdAt: -1 });
     res.status(200).json({ contacts });
   } catch (error) {
     console.error("Get contacts error:", error);
@@ -34,19 +30,33 @@ const getAllContacts = async (req, res) => {
 };
 
 
+const getContactBySlug = async (req, res) => {
+  try {
+    const contact = await Contact.findOne({ slug: req.params.slug });
+    if (!contact) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+    res.status(200).json({ contact });
+  } catch (error) {
+    console.error("Get contact error:", error);
+    res.status(500).json({ message: "Server error while fetching contact" });
+  }
+};
+
 const updateContact = async (req, res) => {
   try {
     const { name, email, message } = req.body;
-    const contact = await Contact.findByIdAndUpdate(
-      req.params.id,
-      { name, email, message },
-      { new: true }
-    );
+    const contact = await Contact.findOne({ slug: req.params.slug });
 
     if (!contact) {
       return res.status(404).json({ message: "Contact not found" });
     }
 
+    contact.name = name || contact.name;
+    contact.email = email || contact.email;
+    contact.message = message || contact.message;
+
+    await contact.save();
     res.status(200).json({
       message: "Contact updated successfully",
       contact,
@@ -60,8 +70,7 @@ const updateContact = async (req, res) => {
 
 const deleteContact = async (req, res) => {
   try {
-    const contact = await Contact.findByIdAndDelete(req.params.id);
-
+    const contact = await Contact.findOneAndDelete({ slug: req.params.slug });
     if (!contact) {
       return res.status(404).json({ message: "Contact not found" });
     }
@@ -76,6 +85,7 @@ const deleteContact = async (req, res) => {
 module.exports = {
   createContact,
   getAllContacts,
+  getContactBySlug,
   updateContact,
   deleteContact,
 };

@@ -1,10 +1,13 @@
 const Cart = require("../../models/addCartModel");
+const slugify = require("slugify");
+const fs = require("fs");
+const path = require("path");
 
-const addToCart = async (req, res) => {
+const createCartItem = async (req, res) => {
   try {
     const { title, description, price, quantity } = req.body;
     const image = req.file?.filename;
-    const totalPrice = price * quantity;
+    const totalPrice = price * (quantity || 1);
 
     const item = new Cart({
       title,
@@ -12,66 +15,89 @@ const addToCart = async (req, res) => {
       price,
       quantity,
       totalPrice,
-      image
+      image,
     });
 
     await item.save();
     res.status(201).json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getCart = async (req, res) => {
+const getAllCartItems = async (req, res) => {
   try {
     const items = await Cart.find();
-    res.status(200).json(items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getCartById = async (req, res) => {
+const getCartItemBySlug = async (req, res) => {
   try {
-    const item = await Cart.findById(req.params.id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
-    res.status(200).json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const item = await Cart.findOne({ slug: req.params.slug });
+    if (!item) return res.status(404).json({ error: "Cart item not found" });
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
-const updateCart = async (req, res) => {
-  try {
-    const updateData = { ...req.body };
-    if (req.file) updateData.image = req.file.filename;
 
-    if (updateData.quantity && updateData.price) {
-      updateData.totalPrice = updateData.quantity * updateData.price;
+const updateCartItemBySlug = async (req, res) => {
+  try {
+    const item = await Cart.findOne({ slug: req.params.slug });
+    if (!item) return res.status(404).json({ error: "Cart item not found" });
+
+    const { title, description, price, quantity } = req.body;
+
+    if (title) {
+      item.title = title;
+      item.slug = slugify(title, { lower: true, strict: true });
     }
 
-    const item = await Cart.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (!item) return res.status(404).json({ message: "Item not found" });
+    if (description) item.description = description;
+    if (typeof price !== "undefined") item.price = price;
+    if (typeof quantity !== "undefined") item.quantity = quantity;
 
-    res.status(200).json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    item.totalPrice = (item.price || 0) * (item.quantity || 1);
+
+    if (req.file) {
+      if (item.image) {
+        const oldPath = path.join("uploads/cart", item.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      item.image = req.file.filename;
+    }
+
+    await item.save();
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-const deleteCart = async (req, res) => {
+const deleteCartItemBySlug = async (req, res) => {
   try {
-    const item = await Cart.findByIdAndDelete(req.params.id);
-    if (!item) return res.status(404).json({ message: "Item not found" });
-    res.status(200).json({ message: "Item deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const item = await Cart.findOneAndDelete({ slug: req.params.slug });
+    if (!item) return res.status(404).json({ error: "Cart item not found" });
+
+    if (item.image) {
+      const imgPath = path.join("uploads/cart", item.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    res.json({ message: "Cart item deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
+
 
 module.exports = {
-  addToCart,
-  getCart,
-  getCartById,
-  updateCart,
-  deleteCart
+  createCartItem,
+  getAllCartItems,
+  getCartItemBySlug,
+  updateCartItemBySlug,
+  deleteCartItemBySlug
 };

@@ -1,8 +1,10 @@
-const BlogDetail = require('../../models/blogDetailModel');
-const fs = require('fs');
-const path = require('path');
+const BlogDetail = require("../../models/blogDetailModel");
+const fs = require("fs");
+const path = require("path");
+const slugify = require("slugify");
 
 module.exports = {
+  // CREATE
   createBlogDetail: async (req, res) => {
     try {
       const { title, date, commentCount, description1, description2, status } = req.body;
@@ -15,84 +17,81 @@ module.exports = {
         image,
         description1,
         description2,
-        status
+        status,
       });
 
       await newBlog.save();
-      res.status(201).json({ success: true, message: 'Blog detail created successfully', data: newBlog });
+      res.status(201).json({ success: true, message: "Blog detail created successfully", data: newBlog });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error creating blog detail', error: error.message });
+      res.status(500).json({ success: false, message: "Error creating blog detail", error: error.message });
     }
   },
 
+  // GET ALL
   getAllBlogDetails: async (req, res) => {
     try {
       const blogs = await BlogDetail.find().sort({ createdAt: -1 });
       res.status(200).json({ success: true, data: blogs });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error fetching blog details', error: error.message });
+      res.status(500).json({ success: false, message: "Error fetching blog details", error: error.message });
     }
   },
 
-  getBlogDetailById: async (req, res) => {
+  // GET BY SLUG
+  getBlogDetailBySlug: async (req, res) => {
     try {
-      const blog = await BlogDetail.findById(req.params.id);
-      if (!blog) {
-        return res.status(404).json({ success: false, message: 'Blog not found' });
-      }
+      const blog = await BlogDetail.findOne({ slug: req.params.slug });
+      if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
       res.status(200).json({ success: true, data: blog });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error fetching blog detail', error: error.message });
+      res.status(500).json({ success: false, message: "Error fetching blog detail", error: error.message });
     }
   },
 
+  // UPDATE BY SLUG
   updateBlogDetail: async (req, res) => {
     try {
-      const { title, date, commentCount, description1, description2, status } = req.body;
-      const blog = await BlogDetail.findById(req.params.id);
+      const blog = await BlogDetail.findOne({ slug: req.params.slug });
+      if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
 
-      if (!blog) {
-        return res.status(404).json({ success: false, message: 'Blog not found' });
-      }
+      const { title, date, commentCount, description1, description2, status } = req.body;
 
       if (req.file) {
-        // Delete old image
-        if (blog.image) {
-          fs.unlinkSync(path.join(__dirname, '../uploads', blog.image));
-        }
+        const oldPath = path.join("uploads/blogdetail", blog.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
         blog.image = req.file.filename;
       }
 
-      blog.title = title || blog.title;
-      blog.date = date || blog.date;
-      blog.commentCount = commentCount || blog.commentCount;
-      blog.description1 = description1 || blog.description1;
-      blog.description2 = description2 || blog.description2;
-      blog.status = status !== undefined ? status : blog.status;
+      if (title) {
+        blog.title = title;
+        blog.slug = slugify(title, { lower: true, strict: true });
+      }
+
+      if (date) blog.date = date;
+      if (typeof commentCount !== "undefined") blog.commentCount = commentCount;
+      if (description1) blog.description1 = description1;
+      if (description2) blog.description2 = description2;
+      if (typeof status !== "undefined") blog.status = status;
 
       await blog.save();
-      res.status(200).json({ success: true, message: 'Blog detail updated', data: blog });
+      res.status(200).json({ success: true, message: "Blog detail updated", data: blog });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error updating blog detail', error: error.message });
+      res.status(500).json({ success: false, message: "Error updating blog detail", error: error.message });
     }
   },
 
+  // DELETE BY SLUG
   deleteBlogDetail: async (req, res) => {
     try {
-      const blog = await BlogDetail.findById(req.params.id);
-      if (!blog) {
-        return res.status(404).json({ success: false, message: 'Blog not found' });
-      }
+      const blog = await BlogDetail.findOneAndDelete({ slug: req.params.slug });
+      if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
 
-      // Delete image
-      if (blog.image) {
-        fs.unlinkSync(path.join(__dirname, '../uploads', blog.image));
-      }
+      const imgPath = path.join("uploads/blogdetail", blog.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
 
-      await BlogDetail.findByIdAndDelete(req.params.id);
-      res.status(200).json({ success: true, message: 'Blog detail deleted successfully' });
+      res.status(200).json({ success: true, message: "Blog detail deleted successfully" });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Error deleting blog detail', error: error.message });
+      res.status(500).json({ success: false, message: "Error deleting blog detail", error: error.message });
     }
   }
 };

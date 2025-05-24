@@ -3,133 +3,76 @@ const FreelancerInvite = require("../../models/freelancerInviteModel");
 const createFreelancer = async (req, res) => {
   const {
     name, hourlyRate, joinDate, recommendations, verifications, skills, certifications,
-    categories, rating, jobCompleted, hireRate, onTime, onBudget, about, portfolio, reviews,
+    categories, rating, jobCompleted, hireRate, onTime, onBudget, about, portfolio, reviews
   } = req.body;
 
   if (!name || !hourlyRate || !joinDate || !about) {
-    return res.status(400).json({
-      message: "Please fill in all required fields",
-    });
+    return res.status(400).json({ message: "Please fill in all required fields" });
   }
 
   try {
     const freelancer = await Freelancer.create({
-      name,
-      hourlyRate,
-      joinDate,
-      recommendations,
-      verifications,
-      skills,
-      certifications,
-      categories,
-      rating,
-      jobCompleted,
-      hireRate,
-      onTime,
-      onBudget,
-      about,
-      portfolio,
-      reviews,
+      name, hourlyRate, joinDate, recommendations, verifications, skills, certifications,
+      categories, rating, jobCompleted, hireRate, onTime, onBudget, about, portfolio, reviews
     });
 
-    res.status(201).json({
-      message: "Freelancer invite created successfully",
-      freelancer,
-    });
+    res.status(201).json({ message: "Freelancer invite created", freelancer });
   } catch (err) {
-    console.error("Create freelancer invite error:", err);
-    res.status(500).json({
-      message: "Server error while creating freelancer invite",
-    });
+    console.error("Create error:", err);
+    res.status(500).json({ message: "Server error creating freelancer invite" });
   }
 };
+
 
 const getAllFreelancers = async (req, res) => {
   try {
     const freelancers = await Freelancer.find().sort({ createdAt: -1 });
     res.status(200).json({ freelancers });
   } catch (err) {
-    console.error("Fetch freelancer invites error:", err);
-    res.status(500).json({
-      message: "Error fetching freelancer invites",
-    });
+    res.status(500).json({ message: "Error fetching freelancer invites" });
   }
 };
 
-const getFreelancerById = async (req, res) => {
+const getFreelancerBySlug = async (req, res) => {
   try {
-    const freelancer = await Freelancer.findById(req.params.id);
-
-    if (!freelancer) {
-      return res.status(404).json({
-        message: "Invite not found",
-      });
-    }
+    const freelancer = await Freelancer.findOne({ slug: req.params.slug });
+    if (!freelancer) return res.status(404).json({ message: "Freelancer invite not found" });
 
     res.status(200).json({ freelancer });
   } catch (err) {
-    console.error("Get freelancer invite error:", err);
-    res.status(500).json({
-      message: "Error fetching freelancer invite",
-    });
+    res.status(500).json({ message: "Error fetching freelancer invite" });
   }
 };
 
 const updateFreelancer = async (req, res) => {
   try {
-    const { 
-      name, hourlyRate, joinDate, recommendations, verifications, skills, certifications,
-      categories, rating, jobCompleted, hireRate, onTime, onBudget, about, portfolio, reviews,
-     } = req.body;
+    const updates = req.body;
+    const freelancer = await Freelancer.findOne({ slug: req.params.slug });
 
-    const freelancer = await Freelancer.findByIdAndUpdate(
-      req.params.id,
-      {
-        name,
-        hourlyRate,
-        joinDate,
-        recommendations,
-        verifications,
-        skills,
-        certifications,
-        categories,
-        rating,
-        jobCompleted,
-        hireRate,
-        onTime,
-        onBudget,
-        about,
-        portfolio,
-        reviews,
-      },
-      { new: true }
-    );
+    if (!freelancer) return res.status(404).json({ message: "Freelancer invite not found" });
 
-    if (!freelancer) {
-      return res.status(404).json({ message: "Freelancer Invite not found" });
+    if (updates.name) {
+      freelancer.name = updates.name;
+      freelancer.slug = slugify(updates.name + "-" + Date.now(), { lower: true, strict: true });
     }
 
-    res.status(200).json({
-      message: "Freelancer Invite updated",
-      freelancer,
-    });
+    Object.assign(freelancer, updates);
+    await freelancer.save();
+
+    res.status(200).json({ message: "Freelancer invite updated", freelancer });
   } catch (err) {
-    console.error("Update freelancer invite error:", err);
     res.status(500).json({ message: "Error updating freelancer invite" });
   }
 };
 
 const deleteFreelancer = async (req, res) => {
   try {
-    const freelancer = await Freelancer.findByIdAndDelete(req.params.id);
+    const freelancer = await Freelancer.findOneAndDelete({ slug: req.params.slug });
 
-    if (!freelancer) {
-      return res.status(404).json({ message: "Freelancer Invite not found" });
-    }
+    if (!freelancer) return res.status(404).json({ message: "Freelancer invite not found" });
 
-    res.status(200).json({ message: "Freelancer Invite deleted" });
+    res.status(200).json({ message: "Freelancer invite deleted" });
   } catch (err) {
-    console.error("Delete freelancer invite error:", err);
     res.status(500).json({ message: "Error deleting freelancer invite" });
   }
 };
@@ -137,7 +80,7 @@ const deleteFreelancer = async (req, res) => {
 module.exports = {
   createFreelancer,
   getAllFreelancers,
-  getFreelancerById,
+  getFreelancerBySlug,
   updateFreelancer,
   deleteFreelancer,
 };

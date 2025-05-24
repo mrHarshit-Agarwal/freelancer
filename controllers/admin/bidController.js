@@ -1,9 +1,12 @@
 const Bid = require("../../models/bidModel");
+const slugify = require("slugify");
+const fs = require("fs");
+const path = require("path");
 
-
+// CREATE
 const createBid = async (req, res) => {
   try {
-    const { title, description, minPrice, maxPrice, bidsCount, projectType, duration } = req.body;
+    const { title, description, minPrice, maxPrice, bidCount, bidType, duration } = req.body;
     const image = req.file?.filename;
 
     const bid = new Bid({
@@ -11,10 +14,10 @@ const createBid = async (req, res) => {
       description,
       minPrice,
       maxPrice,
-      bidsCount,
-      projectType,
+      bidCount,
+      bidType,
       duration,
-      image
+      image,
     });
 
     await bid.save();
@@ -24,8 +27,8 @@ const createBid = async (req, res) => {
   }
 };
 
-
-const getAllbids = async (req, res) => {
+// GET ALL
+const getAllBids = async (req, res) => {
   try {
     const bids = await Bid.find();
     res.status(200).json(bids);
@@ -34,10 +37,10 @@ const getAllbids = async (req, res) => {
   }
 };
 
-
-const getBidById = async (req, res) => {
+// GET BY SLUG
+const getBidBySlug = async (req, res) => {
   try {
-    const bid = await Bid.findById(req.params.id);
+    const bid = await Bid.findOne({ slug: req.params.slug });
     if (!bid) return res.status(404).json({ message: "Bid not found" });
     res.status(200).json(bid);
   } catch (error) {
@@ -45,26 +48,51 @@ const getBidById = async (req, res) => {
   }
 };
 
-
-const updateBid = async (req, res) => {
+// UPDATE BY SLUG
+const updateBidBySlug = async (req, res) => {
   try {
-    const updateData = { ...req.body };
-    if (req.file) updateData.image = req.file.filename;
-
-    const bid = await Bid.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const bid = await Bid.findOne({ slug: req.params.slug });
     if (!bid) return res.status(404).json({ message: "Bid not found" });
 
+    const { title, description, minPrice, maxPrice, bidCount, bidType, duration } = req.body;
+
+    if (title) {
+      bid.title = title;
+      bid.slug = slugify(title, { lower: true, strict: true });
+    }
+    if (description) bid.description = description;
+    if (minPrice) bid.minPrice = minPrice;
+    if (maxPrice) bid.maxPrice = maxPrice;
+    if (bidCount) bid.bidCount = bidCount;
+    if (bidType) bid.bidType = bidType;
+    if (duration) bid.duration = duration;
+
+    if (req.file) {
+      if (bid.image) {
+        const imgPath = path.join("uploads/bid", bid.image);
+        if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+      }
+      bid.image = req.file.filename;
+    }
+
+    await bid.save();
     res.status(200).json(bid);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-
-const deleteBid = async (req, res) => {
+// DELETE BY SLUG
+const deleteBidBySlug = async (req, res) => {
   try {
-    const bid = await Bid.findByIdAndDelete(req.params.id);
+    const bid = await Bid.findOneAndDelete({ slug: req.params.slug });
     if (!bid) return res.status(404).json({ message: "Bid not found" });
+
+    if (bid.image) {
+      const imgPath = path.join("uploads/bid", bid.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
     res.status(200).json({ message: "Bid deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -73,8 +101,8 @@ const deleteBid = async (req, res) => {
 
 module.exports = {
   createBid,
-  getAllbids,
-  getBidById,
-  updateBid,
-  deleteBid,
+  getAllBids,
+  getBidBySlug,
+  updateBidBySlug,
+  deleteBidBySlug,
 };

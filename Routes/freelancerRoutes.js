@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('../middleware/multer');
-const freelancerController = require('../controllers/admin/freelancerController');
+const dynamicStorage = require("../middleware/multer");
+const controller = require('../controllers/admin/freelancerController');
 
-router.post('/freelancer', multer.single('profileImage'), freelancerController.createFreelancer);
-router.get('/freelancer', freelancerController.getAllFreelancers);
-router.get('/freelancer/:id', freelancerController.getFreelancerById);
-router.put('/freelancer/:id', multer.single('profileImage'), freelancerController.updateFreelancer);
-router.delete('/freelancer/:id', freelancerController.deleteFreelancer);
+const upload = dynamicStorage("freelancerImages");
+
+// Routes
+router.post("/freelancers", upload.single("profileImage"), controller.createFreelancer);
+router.get("/freelancers", controller.getAllFreelancers);
+router.get("/freelancers/:slug", controller.getFreelancerBySlug);
+router.put("/freelancers/:slug", upload.single("profileImage"), controller.updateFreelancer);
+router.delete("/freelancers/:slug", controller.deleteFreelancer);
 
 module.exports = router;
+

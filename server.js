@@ -21,6 +21,13 @@ const bidRooutes = require('./Routes/bidRoutes');
 const bidDetailRoutes = require('./Routes/bidDetailRoutes');
 const addCartRoutes = require('./Routes/addCartRoutes');
 const chatRoutes = require('./Routes/chatRoutes');
+const checkoutRoutes = require('./Routes/checkoutRoutes');
+const jobDetailRoutes = require('./Routes/jobDetailRoutes');
+const pricingPlanRoutes = require('./Routes/pricingPlanRoutes');
+const sellerRoutes = require('./Routes/sellerRoutes');
+
+
+
 
 
 require("dotenv").config();
@@ -44,7 +51,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Main user auth routes (login/signup etc.)
 app.use("/", userRoutes, contactRoutes, companyRoutes, companyDetailsRoutes, freelancerInviteRoutes, freelancerDetailsRoutes, uploadRoutes, freelancerRoutes, aboutRoutes,
-   blogRoutes, blogDetailRoutes, homeRoutes, categoryRoutes, categoryDetailRoutes, categoryFilterRoutes, bidRooutes, bidDetailRoutes, addCartRoutes, chatRoutes );
+   blogRoutes, blogDetailRoutes, homeRoutes, categoryRoutes, categoryDetailRoutes, categoryFilterRoutes, bidRooutes, bidDetailRoutes, addCartRoutes, chatRoutes, checkoutRoutes, sellerRoutes, pricingPlanRoutes, jobDetailRoutes );
 
 
 // Route to render fonts/service.ejs

@@ -1,17 +1,24 @@
 const About = require('../../models/aboutModel');
-const fs = require('fs');
+const slugify = require("slugify");
+const fs = require("fs");
+const path = require("path");
 
 const createAbout = async (req, res) => {
   try {
     const {
-      aboutTitle, aboutDescription, whatWeDoTitle,
-      whatWeDoDescription, weDoDifferentlyTitle,
-      totalFreelancers, positiveReviews,
-      projectsCompleted, satisfiedUsers,
-      testimonial
+      aboutTitle,
+      aboutDescription,
+      whatWeDoTitle,
+      whatWeDoDescription,
+      weDoDifferentlyTitle,
+      totalFreelancers,
+      positiveReviews,
+      projectsCompleted,
+      satisfiedUsers,
+      testimonial,
     } = req.body;
 
-    const images = req.files?.map(file => file.filename) || [];
+    const image = req.file?.filename;
 
     const newAbout = new About({
       aboutTitle,
@@ -24,73 +31,105 @@ const createAbout = async (req, res) => {
       projectsCompleted,
       satisfiedUsers,
       testimonial: testimonial ? JSON.parse(testimonial) : [],
-      images
+      images: image ? [image] : [],
     });
 
-    const saved = await newAbout.save();
-    res.status(201).json({ success: true, data: saved });
+    await newAbout.save();
+    res.status(201).json(newAbout);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
 const getAllAbout = async (req, res) => {
   try {
-    const about = await About.find();
-    res.status(200).json({ success: true, data: about });
+    const data = await About.find();
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
-const getAboutById = async (req, res) => {
+const getAboutBySlug = async (req, res) => {
   try {
-    const about = await About.findById(req.params.id);
-    if (!about) return res.status(404).json({ success: false, message: "About section not found" });
-    res.status(200).json({ success: true, data: about });
+    const about = await About.findOne({ slug: req.params.id });
+    if (!about) return res.status(404).json({ error: "About not found" });
+    res.json(about);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
 const updateAbout = async (req, res) => {
   try {
-    const updatedFields = { ...req.body };
+    const about = await About.findOne({ slug: req.params.id });
+    if (!about) return res.status(404).json({ error: "About not found" });
 
-    if (req.body.testimonial) {
-      updatedFields.testimonial = JSON.parse(req.body.testimonial);
+    const {
+      aboutTitle,
+      aboutDescription,
+      whatWeDoTitle,
+      whatWeDoDescription,
+      weDoDifferentlyTitle,
+      totalFreelancers,
+      positiveReviews,
+      projectsCompleted,
+      satisfiedUsers,
+      testimonial,
+    } = req.body;
+
+    if (aboutTitle) {
+      about.aboutTitle = aboutTitle;
+      about.slug = slugify(aboutTitle, { lower: true, strict: true });
     }
 
-    if (req.files?.length) {
-      updatedFields.images = req.files.map(file => file.filename);
+    if (aboutDescription) about.aboutDescription = aboutDescription;
+    if (whatWeDoTitle) about.whatWeDoTitle = whatWeDoTitle;
+    if (whatWeDoDescription) about.whatWeDoDescription = whatWeDoDescription;
+    if (weDoDifferentlyTitle) about.weDoDifferentlyTitle = weDoDifferentlyTitle;
+    if (totalFreelancers) about.totalFreelancers = totalFreelancers;
+    if (positiveReviews) about.positiveReviews = positiveReviews;
+    if (projectsCompleted) about.projectsCompleted = projectsCompleted;
+    if (satisfiedUsers) about.satisfiedUsers = satisfiedUsers;
+    if (testimonial) about.testimonial = JSON.parse(testimonial);
+
+    if (req.file) {
+      // Delete old image if exists
+      if (about.images.length) {
+        const oldImagePath = path.join("uploads/about", about.images[0]);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
+      about.images = [req.file.filename];
     }
 
-    const updated = await About.findByIdAndUpdate(req.params.id, updatedFields, { new: true });
-
-    res.status(200).json({ success: true, data: updated });
+    await about.save();
+    res.json(about);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
 const deleteAbout = async (req, res) => {
   try {
-    const deleted = await About.findByIdAndDelete(req.params.id);
-    if (deleted?.images) {
-      deleted.images.forEach(img => {
-        const imgPath = `uploads/${img}`;
-        if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-      });
+    const about = await About.findOneAndDelete({ slug: req.params.id });
+    if (!about) return res.status(404).json({ error: "About not found" });
+
+    if (about.images.length) {
+      const oldImagePath = path.join("uploads/about", about.images[0]);
+      if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
     }
-    res.status(200).json({ success: true, message: "About section deleted successfully" });
+
+    res.json({ message: "About section deleted" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
+
+
 module.exports = {
     createAbout,
     getAllAbout,
-    getAboutById,
+    getAboutBySlug,
     updateAbout,
     deleteAbout,
   };

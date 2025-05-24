@@ -1,82 +1,85 @@
-const Blog = require('../../models/blogModel');
+const Blog = require("../../models/blogModel");
+const slugify = require("slugify");
+const fs = require("fs");
+const path = require("path");
 
-// CREATE
-const createBlog = async (req, res) => {
+
+exports.createBlog = async (req, res) => {
   try {
     const { title, description, category, status } = req.body;
-    const image = req.file ? req.file.path : null;
+    const image = req.file?.filename;
 
-    if (!image) {
-      return res.status(400).json({ message: 'Image is required' });
-    }
+    const blog = new Blog({ title, description, category, image, status });
+    await blog.save();
 
-    const newBlog = new Blog({ title, description, category, image, status });
-    await newBlog.save();
-
-    res.status(201).json({ message: 'Blog created', data: newBlog });
+    res.status(201).json({ success: true, message: "Blog created", data: blog });
   } catch (err) {
-    res.status(500).json({ message: 'Error creating blog', error: err.message });
+    res.status(500).json({ success: false, message: "Failed to create blog", error: err.message });
   }
 };
 
-// READ ALL
-const getAllBlogs = async (req, res) => {
+
+exports.getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
-    res.status(200).json(blogs);
+    res.status(200).json({ success: true, data: blogs });
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching blogs', error: err.message });
+    res.status(500).json({ success: false, message: "Failed to fetch blogs", error: err.message });
   }
 };
 
-// READ ONE
-const getBlogById = async (req, res) => {
+exports.getBlogBySlug = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id);
-    if (!blog) return res.status(404).json({ message: 'Blog not found' });
-
-    res.status(200).json(blog);
+    const blog = await Blog.findOne({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
+    res.status(200).json({ success: true, data: blog });
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching blog', error: err.message });
+    res.status(500).json({ success: false, message: "Failed to fetch blog", error: err.message });
   }
 };
 
-// UPDATE
-const updateBlog = async (req, res) => {
+exports.updateBlogBySlug = async (req, res) => {
   try {
+    const blog = await Blog.findOne({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
+
     const { title, description, category, status } = req.body;
 
-    const updateData = { title, description, category, status };
+    if (title) {
+      blog.title = title;
+      blog.slug = slugify(title, { lower: true, strict: true });
+    }
+    if (description) blog.description = description;
+    if (category) blog.category = category;
+    if (typeof status !== "undefined") blog.status = status;
+
     if (req.file) {
-      updateData.image = req.file.path;
+      if (blog.image) {
+        const oldPath = path.join("uploads/blog", blog.image);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      blog.image = req.file.filename;
     }
 
-    const updatedBlog = await Blog.findByIdAndUpdate(req.params.id, updateData, { new: true });
-
-    if (!updatedBlog) return res.status(404).json({ message: 'Blog not found' });
-
-    res.status(200).json({ message: 'Blog updated', data: updatedBlog });
+    await blog.save();
+    res.status(200).json({ success: true, message: "Blog updated", data: blog });
   } catch (err) {
-    res.status(500).json({ message: 'Error updating blog', error: err.message });
+    res.status(500).json({ success: false, message: "Failed to update blog", error: err.message });
   }
 };
 
-// DELETE
-const deleteBlog = async (req, res) => {
+exports.deleteBlogBySlug = async (req, res) => {
   try {
-    const deletedBlog = await Blog.findByIdAndDelete(req.params.id);
-    if (!deletedBlog) return res.status(404).json({ message: 'Blog not found' });
+    const blog = await Blog.findOneAndDelete({ slug: req.params.slug });
+    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
 
-    res.status(200).json({ message: 'Blog deleted' });
+    if (blog.image) {
+      const imagePath = path.join("uploads/blog", blog.image);
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    }
+
+    res.status(200).json({ success: true, message: "Blog deleted" });
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting blog', error: err.message });
+    res.status(500).json({ success: false, message: "Failed to delete blog", error: err.message });
   }
-};
-
-module.exports = {
-  createBlog,
-  getAllBlogs,
-  getBlogById,
-  updateBlog,
-  deleteBlog,
 };
